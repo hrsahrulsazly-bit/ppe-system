@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardBody } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -236,14 +237,23 @@ export default function RequestForm() {
                       type="checkbox"
                       checked={sel.checked}
                       onChange={() => toggleItem(item.itemId)}
-                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     />
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-white">
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.name}
+                        fill
+                        sizes="56px"
+                        className="object-contain p-1"
+                      />
+                    </div>
                     <span className="font-medium text-slate-800">{item.name}</span>
                     <span className="text-xs text-slate-400">({item.unit})</span>
                   </label>
 
                   {sel.checked && (
-                    <div className="mt-3 flex flex-wrap items-center gap-4 pl-7">
+                    <div className="mt-3 flex flex-wrap items-center gap-4 pl-[4.75rem]">
                       {rule.needsSize && (
                         <div className="flex items-center gap-2">
                           <label className="text-sm text-slate-500">Saiz:</label>
