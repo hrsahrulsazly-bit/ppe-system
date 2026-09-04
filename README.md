@@ -106,3 +106,4 @@ proxy.ts                      # Proteksi laluan /hr/dashboard (Next.js 16 "proxy
   atomik: tolak stok + tandakan status `issued` dalam satu transaksi Postgres).
 - **PDF serahan** dijana di client (`jsPDF`) mengikut susunan tepat §6.5 —
   tidak memaparkan lajur "Keluar"/"Baki Stok".
+
