@@ -44,7 +44,17 @@ export default function RequestModal({
 
   if (!request) return null;
 
-  const stockById = new Map(ppeItems.map((i) => [i.id, i.stock]));
+  const itemsById = new Map(ppeItems.map((i) => [i.id, i]));
+
+  /** Stok semasa bagi item ini — ikut saiz spesifik jika item berkenaan ada saiz. */
+  function stockFor(requestItem: RequestItem): number {
+    const ppeItem = itemsById.get(requestItem.itemId);
+    if (!ppeItem) return 0;
+    if (requestItem.size && ppeItem.stock_by_size) {
+      return ppeItem.stock_by_size[requestItem.size] ?? 0;
+    }
+    return ppeItem.stock;
+  }
 
   function updateQtyIssued(itemId: string, qty: number) {
     setItems((prev) =>
@@ -140,7 +150,7 @@ export default function RequestModal({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {items.map((item) => {
-              const stock = stockById.get(item.itemId) ?? 0;
+              const stock = stockFor(item);
               const baki = stock - item.qtyIssued;
               return (
                 <tr key={item.itemId}>

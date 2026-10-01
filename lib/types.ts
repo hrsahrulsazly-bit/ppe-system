@@ -5,6 +5,7 @@ export interface PpeItem {
   name: string;
   unit: string;
   stock: number;
+  stock_by_size: Record<string, number> | null;
   updated_at: string;
 }
 

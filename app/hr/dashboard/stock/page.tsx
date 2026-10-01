@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { PpeItem } from "@/lib/types";
-import { LOW_STOCK_THRESHOLD } from "@/lib/ppe-config";
+import { CATEGORY_RULES, LOW_STOCK_THRESHOLD, Kategori } from "@/lib/ppe-config";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import ImportModal from "@/components/hr/ImportModal";
@@ -20,7 +20,8 @@ export default function StockPage() {
   const supabase = useMemo(() => createClient(), []);
   const [items, setItems] = useState<PpeItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [edits, setEdits] = useState<Record<string, number>>({});
+  const [flatEdits, setFlatEdits] = useState<Record<string, number>>({});
+  const [sizeEdits, setSizeEdits] = useState<Record<string, Record<string, number>>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -36,8 +37,8 @@ export default function StockPage() {
     loadItems();
   }, [loadItems]);
 
-  async function saveStock(id: string) {
-    const value = edits[id];
+  async function saveFlatStock(id: string) {
+    const value = flatEdits[id];
     if (value === undefined) return;
     setSavingId(id);
     await supabase
@@ -45,9 +46,54 @@ export default function StockPage() {
       .update({ stock: value, updated_at: new Date().toISOString() })
       .eq("id", id);
     setSavingId(null);
-    setEdits((prev) => {
+    setFlatEdits((prev) => {
       const next = { ...prev };
       delete next[id];
+      return next;
+    });
+    loadItems();
+  }
+
+  function sizeValueFor(item: PpeItem, size: string): number {
+    const edited = sizeEdits[item.id]?.[size];
+    if (edited !== undefined) return edited;
+    return item.stock_by_size?.[size] ?? 0;
+  }
+
+  function updateSizeEdit(item: PpeItem, size: string, value: number) {
+    setSizeEdits((prev) => ({
+      ...prev,
+      [item.id]: {
+        ...(prev[item.id] ?? Object.fromEntries(
+          (CATEGORY_RULES[item.category as Kategori].sizeOptions ?? []).map((s) => [
+            s,
+            item.stock_by_size?.[s] ?? 0,
+          ])
+        )),
+        [size]: value,
+      },
+    }));
+  }
+
+  function hasSizeEdits(itemId: string): boolean {
+    return sizeEdits[itemId] !== undefined;
+  }
+
+  async function saveSizeStock(item: PpeItem) {
+    const sizeOptions = CATEGORY_RULES[item.category as Kategori].sizeOptions ?? [];
+    const merged: Record<string, number> = {};
+    for (const size of sizeOptions) {
+      merged[size] = sizeValueFor(item, size);
+    }
+    setSavingId(item.id);
+    await supabase
+      .from("ppe_items")
+      .update({ stock_by_size: merged, updated_at: new Date().toISOString() })
+      .eq("id", item.id);
+    setSavingId(null);
+    setSizeEdits((prev) => {
+      const next = { ...prev };
+      delete next[item.id];
       return next;
     });
     loadItems();
@@ -67,77 +113,105 @@ export default function StockPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <h2 className="text-sm font-semibold text-slate-700">Senarai Item PPE</h2>
-        </CardHeader>
-        <CardBody className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12 text-slate-400">
-              <Loader2 className="animate-spin" size={24} />
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3">Peralatan</th>
-                    <th className="px-5 py-3">Varian</th>
-                    <th className="px-5 py-3">Unit</th>
-                    <th className="px-5 py-3">Stok Semasa</th>
-                    <th className="px-5 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {items.map((item) => {
-                    const editing = edits[item.id] !== undefined;
-                    const value = editing ? edits[item.id] : item.stock;
-                    return (
-                      <tr key={item.id} className={item.stock <= LOW_STOCK_THRESHOLD ? "bg-red-50/40" : ""}>
-                        <td className="px-5 py-3 font-medium text-slate-800">{item.category}</td>
-                        <td className="px-5 py-3">{item.variant}</td>
-                        <td className="px-5 py-3 text-slate-500">{item.unit}</td>
-                        <td className="px-5 py-3">
-                          <input
-                            type="number"
-                            min={0}
-                            value={value}
-                            onChange={(e) =>
-                              setEdits((prev) => ({ ...prev, [item.id]: parseInt(e.target.value) || 0 }))
-                            }
-                            className={`w-24 rounded-md border px-2 py-1 ${
-                              item.stock <= LOW_STOCK_THRESHOLD
-                                ? "border-red-300 text-red-700 font-semibold"
-                                : "border-slate-300"
-                            }`}
-                          />
-                        </td>
-                        <td className="px-5 py-3">
-                          {editing && (
-                            <Button
-                              size="sm"
-                              onClick={() => saveStock(item.id)}
-                              loading={savingId === item.id}
-                            >
-                              <Save size={14} /> Simpan
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardBody>
-      </Card>
+      {loading ? (
+        <Card>
+          <CardBody className="flex items-center justify-center py-12 text-slate-400">
+            <Loader2 className="animate-spin" size={24} />
+          </CardBody>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {items.map((item) => {
+            const rule = CATEGORY_RULES[item.category as Kategori];
+            const lowStock = item.stock <= LOW_STOCK_THRESHOLD;
+
+            if (!rule.needsSize) {
+              const editing = flatEdits[item.id] !== undefined;
+              const value = editing ? flatEdits[item.id] : item.stock;
+              return (
+                <Card key={item.id}>
+                  <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-800">
+                        {item.category} {item.variant}
+                      </p>
+                      <p className="text-xs text-slate-400">{item.unit}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-slate-500">Stok Semasa:</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={value}
+                        onChange={(e) =>
+                          setFlatEdits((prev) => ({ ...prev, [item.id]: parseInt(e.target.value) || 0 }))
+                        }
+                        className={`w-24 rounded-md border px-2 py-1 ${
+                          lowStock ? "border-red-300 text-red-700 font-semibold" : "border-slate-300"
+                        }`}
+                      />
+                      {editing && (
+                        <Button size="sm" onClick={() => saveFlatStock(item.id)} loading={savingId === item.id}>
+                          <Save size={14} /> Simpan
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                </Card>
+              );
+            }
+
+            const sizeOptions = rule.sizeOptions ?? [];
+            const total = sizeOptions.reduce((sum, s) => sum + sizeValueFor(item, s), 0);
+            const totalLow = total <= LOW_STOCK_THRESHOLD;
+
+            return (
+              <Card key={item.id}>
+                <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-slate-800">
+                      {item.category} {item.variant}
+                    </p>
+                    <p className="text-xs text-slate-400">{item.unit} · ikut saiz</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm font-medium ${totalLow ? "text-red-600" : "text-slate-600"}`}>
+                      Jumlah: {total}
+                    </span>
+                    {hasSizeEdits(item.id) && (
+                      <Button size="sm" onClick={() => saveSizeStock(item)} loading={savingId === item.id}>
+                        <Save size={14} /> Simpan
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardBody>
+                  <div className="flex flex-wrap gap-3">
+                    {sizeOptions.map((size) => (
+                      <div key={size} className="flex flex-col items-start gap-1">
+                        <label className="text-xs font-medium text-slate-500">Saiz {size}</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={sizeValueFor(item, size)}
+                          onChange={(e) => updateSizeEdit(item, size, parseInt(e.target.value) || 0)}
+                          className="w-20 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <ImportModal<StockRowData>
         open={importOpen}
         onClose={() => setImportOpen(false)}
         title="Import Stok PPE"
-        helpText="Padan ikut ID dahulu; jika ID kosong, sistem akan cuba padan ikut Peralatan + Varian."
+        helpText="Padan ikut ID dahulu; jika ID kosong, sistem akan cuba padan ikut Peralatan + Varian. Nota: import hanya kemaskini stok item TANPA saiz (Safety Helmet) — untuk item bersaiz (Vest/Kasut/Uniform), guna input saiz di atas."
         onDownloadTemplate={() => downloadStockTemplate(items)}
         onParseFile={parseStockFile}
         onCommit={(rows, onProgress) => importStock(supabase, rows, items, onProgress)}

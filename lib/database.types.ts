@@ -12,6 +12,8 @@ export interface Database {
           name: string;
           unit: string;
           stock: number;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          stock_by_size: any;
           updated_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["ppe_items"]["Row"]> & {
