@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { PpeItem } from "@/lib/types";
-import { CATEGORY_RULES, LOW_STOCK_THRESHOLD, Kategori } from "@/lib/ppe-config";
+import { LOW_STOCK_THRESHOLD, Kategori, sizeRuleForItem } from "@/lib/ppe-config";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import ImportModal from "@/components/hr/ImportModal";
@@ -65,7 +65,7 @@ export default function StockPage() {
       ...prev,
       [item.id]: {
         ...(prev[item.id] ?? Object.fromEntries(
-          (CATEGORY_RULES[item.category as Kategori].sizeOptions ?? []).map((s) => [
+          (sizeRuleForItem(item.id, item.category as Kategori).sizeOptions ?? []).map((s) => [
             s,
             item.stock_by_size?.[s] ?? 0,
           ])
@@ -80,7 +80,7 @@ export default function StockPage() {
   }
 
   async function saveSizeStock(item: PpeItem) {
-    const sizeOptions = CATEGORY_RULES[item.category as Kategori].sizeOptions ?? [];
+    const sizeOptions = sizeRuleForItem(item.id, item.category as Kategori).sizeOptions ?? [];
     const merged: Record<string, number> = {};
     for (const size of sizeOptions) {
       merged[size] = sizeValueFor(item, size);
@@ -122,7 +122,7 @@ export default function StockPage() {
       ) : (
         <div className="space-y-4">
           {items.map((item) => {
-            const rule = CATEGORY_RULES[item.category as Kategori];
+            const rule = sizeRuleForItem(item.id, item.category as Kategori);
             const lowStock = item.stock <= LOW_STOCK_THRESHOLD;
 
             if (!rule.needsSize) {
@@ -211,7 +211,7 @@ export default function StockPage() {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         title="Import Stok PPE"
-        helpText="Padan ikut ID dahulu; jika ID kosong, sistem akan cuba padan ikut Peralatan + Varian. Nota: import hanya kemaskini stok item TANPA saiz (Safety Helmet) — untuk item bersaiz (Vest/Kasut/Uniform), guna input saiz di atas."
+        helpText="Padan ikut ID dahulu; jika ID kosong, sistem akan cuba padan ikut Peralatan + Varian. Nota: import hanya kemaskini stok item TANPA saiz (cth. Safety Helmet, Safety Vest Pekerja Am - free size) — untuk item bersaiz, guna input saiz di atas."
         onDownloadTemplate={() => downloadStockTemplate(items)}
         onParseFile={parseStockFile}
         onCommit={(rows, onProgress) => importStock(supabase, rows, items, onProgress)}

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardBody } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { CATEGORY_RULES, eligibleItemsFor } from "@/lib/ppe-config";
+import { CATEGORY_RULES, eligibleItemsFor, sizeRuleForItem } from "@/lib/ppe-config";
 import { Search, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
 
 interface EmployeeLite {
@@ -121,8 +121,8 @@ export default function RequestForm() {
       return;
     }
     for (const item of chosen) {
-      const rule = CATEGORY_RULES[item.category];
-      if (rule.needsSize && !selection[item.itemId].size) {
+      const sizeRule = sizeRuleForItem(item.itemId, item.category);
+      if (sizeRule.needsSize && !selection[item.itemId].size) {
         setError(`Sila pilih saiz untuk ${item.name}.`);
         return;
       }
@@ -130,13 +130,13 @@ export default function RequestForm() {
 
     const itemsPayload = chosen.map((item) => {
       const sel = selection[item.itemId];
-      const rule = CATEGORY_RULES[item.category];
-      const qty = rule.qtyEditable ? sel.qty : 1;
+      const sizeRule = sizeRuleForItem(item.itemId, item.category);
+      const qty = CATEGORY_RULES[item.category].qtyEditable ? sel.qty : 1;
       return {
         itemId: item.itemId,
         name: item.name,
         category: item.category,
-        size: rule.needsSize ? sel.size : null,
+        size: sizeRule.needsSize ? sel.size : null,
         qtyRequested: qty,
         qtyIssued: qty,
       };
@@ -222,7 +222,8 @@ export default function RequestForm() {
           </h3>
           <div className="space-y-3">
             {eligibleItems.map((item) => {
-              const rule = CATEGORY_RULES[item.category];
+              const sizeRule = sizeRuleForItem(item.itemId, item.category);
+              const qtyEditable = CATEGORY_RULES[item.category].qtyEditable;
               const sel = selection[item.itemId];
               if (!sel) return null;
               return (
@@ -254,7 +255,7 @@ export default function RequestForm() {
 
                   {sel.checked && (
                     <div className="mt-3 flex flex-wrap items-center gap-4 pl-[4.75rem]">
-                      {rule.needsSize && (
+                      {sizeRule.needsSize && (
                         <div className="flex items-center gap-2">
                           <label className="text-sm text-slate-500">Saiz:</label>
                           <select
@@ -263,7 +264,7 @@ export default function RequestForm() {
                             className="rounded-md border border-slate-300 px-2 py-1 text-sm"
                           >
                             <option value="">Pilih</option>
-                            {rule.sizeOptions?.map((s) => (
+                            {sizeRule.sizeOptions?.map((s) => (
                               <option key={s} value={s}>
                                 {s}
                               </option>
@@ -271,7 +272,7 @@ export default function RequestForm() {
                           </select>
                         </div>
                       )}
-                      {rule.qtyEditable ? (
+                      {qtyEditable ? (
                         <div className="flex items-center gap-2">
                           <label className="text-sm text-slate-500">Kuantiti:</label>
                           <input

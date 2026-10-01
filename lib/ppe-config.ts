@@ -22,28 +22,48 @@ export const KATEGORI_LIST: Kategori[] = [
   "Uniform",
 ];
 
-/** §6.2 — peraturan saiz & kuantiti setiap kategori. */
+/** §6.2 — peraturan kuantiti setiap kategori (sentiasa sama tanpa mengira item). */
 export const CATEGORY_RULES: Record<
   Kategori,
   { needsSize: boolean; sizeOptions: string[] | null; qtyEditable: boolean }
 > = {
   "Safety Helmet": { needsSize: false, sizeOptions: null, qtyEditable: false },
-  "Safety Vest": {
-    needsSize: true,
-    sizeOptions: ["S", "M", "L", "XL", "XXL"],
-    qtyEditable: false,
-  },
+  "Safety Vest": { needsSize: true, sizeOptions: ["S", "M", "L", "XL", "XXL"], qtyEditable: false },
   "Safety Shoes": {
     needsSize: true,
     sizeOptions: ["5", "6", "7", "8", "9", "10", "11", "12"],
     qtyEditable: false,
   },
-  Uniform: {
-    needsSize: true,
-    sizeOptions: ["S", "M", "L", "XL", "XXL"],
-    qtyEditable: true,
-  },
+  Uniform: { needsSize: true, sizeOptions: ["S", "M", "L", "XL", "XXL"], qtyEditable: true },
 };
+
+/** "S","M","L","XL","XXL","3XL",...,"<maxXL>XL" */
+function sizesUpTo(maxXL: number): string[] {
+  const sizes = ["S", "M", "L", "XL", "XXL"];
+  for (let n = 3; n <= maxXL; n++) sizes.push(`${n}XL`);
+  return sizes;
+}
+
+/**
+ * Peraturan saiz sebenar berbeza ikut ITEM (bukan sekadar kategori):
+ * - Safety Vest Pekerja Am: free size (tiada saiz)
+ * - Safety Vest Staff: S hingga 8XL
+ * - Uniform Oren: S hingga 5XL
+ * - Safety Shoes (kedua-dua varian): guna saiz lalai kategori (5-12)
+ * Item yang tiada override di sini guna CATEGORY_RULES terus.
+ */
+const ITEM_SIZE_OVERRIDES: Record<string, { needsSize: boolean; sizeOptions: string[] | null }> = {
+  "vest-am": { needsSize: false, sizeOptions: null },
+  "vest-staff": { needsSize: true, sizeOptions: sizesUpTo(8) },
+  "uniform-oren": { needsSize: true, sizeOptions: sizesUpTo(5) },
+};
+
+export function sizeRuleForItem(
+  itemId: string,
+  category: Kategori
+): { needsSize: boolean; sizeOptions: string[] | null } {
+  return ITEM_SIZE_OVERRIDES[itemId] ?? CATEGORY_RULES[category];
+}
 
 /** §6.1 — kelayakan PPE mengikut kumpulan jawatan. Setiap entri = { kategori, varian, itemId }. */
 export interface EligibleItem {
