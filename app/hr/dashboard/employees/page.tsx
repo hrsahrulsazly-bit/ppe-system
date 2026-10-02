@@ -8,6 +8,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import ImportModal from "@/components/hr/ImportModal";
+import PendingRegistrations from "@/components/hr/PendingRegistrations";
 import {
   downloadEmployeeTemplate,
   parseEmployeeFile,
@@ -126,6 +127,8 @@ export default function EmployeesPage() {
           </Button>
         </div>
       </div>
+
+      <PendingRegistrations onApproved={loadEmployees} />
 
       <Card>
         <CardHeader>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -34,6 +34,21 @@ export default function DashboardShell({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pendingRegs, setPendingRegs] = useState(0);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const refresh = () => {
+      supabase
+        .from("employee_registrations")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+        .then(({ count }) => setPendingRegs(count ?? 0));
+    };
+    refresh();
+    window.addEventListener("registrations-changed", refresh);
+    return () => window.removeEventListener("registrations-changed", refresh);
+  }, [pathname]);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -59,6 +74,11 @@ export default function DashboardShell({
           >
             <Icon size={18} />
             {label}
+            {href.endsWith("/employees") && pendingRegs > 0 && (
+              <span className="ml-auto rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
+                {pendingRegs}
+              </span>
+            )}
           </Link>
         );
       })}

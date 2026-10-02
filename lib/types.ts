@@ -50,6 +50,22 @@ export interface PpeRequest {
   ref_no: string | null;
 }
 
+export type RegistrationStatus = "pending" | "approved" | "rejected";
+
+export interface EmployeeRegistration {
+  id: string;
+  staff_id: string;
+  name: string;
+  ic_number: string;
+  comp_code: string | null;
+  branch: string | null;
+  position: string;
+  status: RegistrationStatus;
+  created_at: string;
+  processed_at: string | null;
+  processed_by: string | null;
+}
+
 export interface Settings {
   id: number;
   company_name: string;

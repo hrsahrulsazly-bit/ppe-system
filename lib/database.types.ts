@@ -73,6 +73,29 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["requests"]["Row"]>;
         Relationships: [];
       };
+      employee_registrations: {
+        Row: {
+          id: string;
+          staff_id: string;
+          name: string;
+          ic_number: string;
+          comp_code: string | null;
+          branch: string | null;
+          position: string;
+          status: "pending" | "approved" | "rejected";
+          created_at: string;
+          processed_at: string | null;
+          processed_by: string | null;
+        };
+        Insert: Partial<Database["public"]["Tables"]["employee_registrations"]["Row"]> & {
+          staff_id: string;
+          name: string;
+          ic_number: string;
+          position: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["employee_registrations"]["Row"]>;
+        Relationships: [];
+      };
       settings: {
         Row: {
           id: number;
@@ -125,6 +148,14 @@ export interface Database {
           p_processed_by: string;
         };
         Returns: Database["public"]["Tables"]["requests"]["Row"];
+      };
+      approve_employee_registration: {
+        Args: { p_id: string; p_processed_by: string };
+        Returns: Database["public"]["Tables"]["employee_registrations"]["Row"];
+      };
+      reject_employee_registration: {
+        Args: { p_id: string; p_processed_by: string };
+        Returns: Database["public"]["Tables"]["employee_registrations"]["Row"];
       };
     };
   };

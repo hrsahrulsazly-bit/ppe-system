@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardBody } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { CATEGORY_RULES, eligibleItemsFor, sizeRuleForItem } from "@/lib/ppe-config";
-import { Search, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
+import { Search, CheckCircle2, ArrowLeft, Loader2, UserPlus } from "lucide-react";
 
 interface EmployeeLite {
   id: string;
@@ -325,6 +326,7 @@ export default function RequestForm() {
   }
 
   return (
+    <>
     <Card>
       <CardBody>
         <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -364,10 +366,17 @@ export default function RequestForm() {
 
         {query.trim().length >= 2 && !searching && results.length === 0 && (
           <p className="mt-3 text-sm text-slate-400">
-            Tiada nama sepadan dijumpai. Sila hubungi HR jika nama anda tiada dalam sistem.
+            Tiada nama sepadan dijumpai. Jika anda staf baru, sila daftar menggunakan butang di bawah.
           </p>
         )}
       </CardBody>
     </Card>
+    <Link
+      href="/daftar"
+      className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50/60 px-4 py-3 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+    >
+      <UserPlus size={18} /> Staf Baru? Daftar Di Sini
+    </Link>
+    </>
   );
 }
